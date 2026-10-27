@@ -1,0 +1,104 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 150 &&
+             data.organization is string && data.organization.size() > 0 && data.organization.size() <= 100 &&
+             (!('username' in data) || data.username == null || (data.username is string && data.username.size() <= 50)) &&
+             (!('status' in data) || data.status == null || (data.status is string && data.status.size() <= 200)) &&
+             (!('phone' in data) || data.phone == null || (data.phone is string && data.phone.size() <= 40)) &&
+             (!('photoUrl' in data) || data.photoUrl == null || (data.photoUrl is string && data.photoUrl.size() <= 500)) &&
+             (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    function isValidChatSummary(data) {
+      return data.id is string && data.id.size() > 0 && data.id.size() <= 128 &&
+             data.contactId is string && data.contactId.size() > 0 && data.contactId.size() <= 128 &&
+             data.contactName is string && data.contactName.size() > 0 && data.contactName.size() <= 100 &&
+             data.lastMessageText is string && data.lastMessageText.size() <= 1000 &&
+             (!('contactPhone' in data) || data.contactPhone == null || (data.contactPhone is string && data.contactPhone.size() <= 40)) &&
+             (!('lastMessageTimestamp' in data) || data.lastMessageTimestamp == null || data.lastMessageTimestamp is timestamp) &&
+             (!('unreadCount' in data) || data.unreadCount == null || data.unreadCount is int) &&
+             (!('isPinned' in data) || data.isPinned == null || data.isPinned is bool) &&
+             (!('updatedAt' in data) || data.updatedAt == null || (data.updatedAt is timestamp && data.updatedAt <= request.time));
+    }
+
+    // User Profile registered with SAT Limited organization
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().userId == request.auth.uid &&
+                       incoming().keys().hasAll(['userId', 'name', 'email', 'organization', 'createdAt']) &&
+                       incoming().keys().hasOnly(['userId', 'name', 'email', 'organization', 'username', 'status', 'phone', 'photoUrl', 'createdAt', 'updatedAt']) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidUserProfile(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().organization == existing().organization &&
+                       isValidUserProfile(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username', 'status', 'phone', 'photoUrl', 'updatedAt']);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(userId);
+
+      // User's private chats
+      match /chats/{chatId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(chatId) &&
+                         incoming().id == chatId &&
+                         incoming().keys().hasAll(['id', 'contactId', 'contactName', 'lastMessageText', 'createdAt']) &&
+                         incoming().keys().hasOnly(['id', 'contactId', 'contactName', 'contactPhone', 'lastMessageText', 'lastMessageTimestamp', 'unreadCount', 'isPinned', 'createdAt', 'updatedAt']) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidChatSummary(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(chatId) &&
+                         incoming().id == existing().id &&
+                         incoming().contactId == existing().contactId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidChatSummary(incoming()) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['contactName', 'contactPhone', 'lastMessageText', 'lastMessageTimestamp', 'unreadCount', 'isPinned', 'updatedAt']);
+
+        allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(chatId);
+      }
+    }
+  }
+}

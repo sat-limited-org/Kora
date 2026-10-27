@@ -1,0 +1,111 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with SAT Limited organization affiliation and account details",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "User ID matching Firebase Auth UID"
+        },
+        "name": {
+          "type": "string",
+          "description": "User display name"
+        },
+        "email": {
+          "type": "string",
+          "description": "Google email address"
+        },
+        "organization": {
+          "type": "string",
+          "description": "Affiliated organization (SAT Limited)"
+        },
+        "username": {
+          "type": "string",
+          "description": "Unique username handle"
+        },
+        "status": {
+          "type": "string",
+          "description": "Custom bio or status message"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number"
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "Profile picture URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Account registration timestamp created with serverTimestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last profile update timestamp created with serverTimestamp"
+        }
+      },
+      "required": ["userId", "name", "email", "organization", "createdAt"]
+    },
+    "ChatSummary": {
+      "title": "ChatSummary",
+      "description": "User's conversation thread summary",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Chat identifier"
+        },
+        "contactId": {
+          "type": "string",
+          "description": "Contact identifier"
+        },
+        "contactName": {
+          "type": "string",
+          "description": "Contact display name"
+        },
+        "lastMessageText": {
+          "type": "string",
+          "description": "Last message snippet"
+        },
+        "lastMessageTimestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp of the last message"
+        },
+        "unreadCount": {
+          "type": "integer",
+          "description": "Number of unread messages"
+        },
+        "isPinned": {
+          "type": "boolean",
+          "description": "Whether chat is pinned to top"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Chat creation timestamp"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Chat update timestamp"
+        }
+      },
+      "required": ["id", "contactId", "contactName", "lastMessageText", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Private user profile registered with SAT Limited"
+    },
+    "/users/{userId}/chats/{chatId}": {
+      "schema": "ChatSummary",
+      "description": "Individual user conversations"
+    }
+  }
+}

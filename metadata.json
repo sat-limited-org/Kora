@@ -1,0 +1,6 @@
+{
+  "name": "Kora",
+  "description": "Clean and modern messaging app featuring instant chat, contacts, and custom themes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
